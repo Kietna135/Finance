@@ -1,0 +1,63 @@
+{
+  "name": "Finance - Quản Lý Chi Tiêu & OCR",
+  "short_name": "Finance",
+  "description": "Ứng dụng quản lý tài chính cá nhân thông minh, trích xuất hóa đơn OCR, biểu đồ trực quan & quản lý ngân sách",
+  "start_url": "/",
+  "id": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "window-controls-overlay", "minimal-ui"],
+  "orientation": "portrait-primary",
+  "background_color": "#0f172a",
+  "theme_color": "#2563eb",
+  "categories": ["finance", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Quét Hóa Đơn",
+      "short_name": "Quét OCR",
+      "description": "Quét hóa đơn hoặc ảnh chuyển khoản ngân hàng",
+      "url": "/#scan",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Thêm Giao Dịch",
+      "short_name": "Nhập tay",
+      "description": "Thêm khoản thu chi thủ công",
+      "url": "/#add",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Biểu Đồ Phân Tích",
+      "short_name": "Biểu đồ",
+      "description": "Xem phân tích chi tiêu Canvas",
+      "url": "/#analytics",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

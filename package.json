@@ -1,0 +1,19 @@
+{
+  "name": "finance-expense-manager",
+  "version": "1.0.0",
+  "description": "Ứng dụng quản lý tài chính cá nhân & OCR trích xuất hóa đơn, hỗ trợ PWA và cài đặt ứng dụng di động",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "finance",
+    "expense-tracker",
+    "ocr",
+    "canvas-charts",
+    "pwa"
+  ],
+  "author": "Kietna135",
+  "license": "MIT"
+}

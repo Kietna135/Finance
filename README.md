@@ -33,23 +33,27 @@ Hệ thống quản lý tài chính cá nhân thông minh dành cho sinh viên v
 
 ---
 
-## 🌐 Chạy Phiên Bản Web Trực Tiếp
+## 🌐 Triển Khai Lên Vercel & Cài Đặt Dưới Dạng App (PWA)
 
-Ứng dụng web đã được biên dịch và khởi chạy máy chủ cục bộ:
+### 1. Triển khai lên Vercel (1 Click Deploy)
+1. Đăng nhập [Vercel](https://vercel.com/) bằng tài khoản GitHub.
+2. Chọn **"Add New..."** -> **"Project"**.
+3. Chọn repository `Finance` (`https://github.com/Kietna135/Finance.git`).
+4. Giữ nguyên thiết lập mặc định (Framework Preset: *Other*, Root Directory: `./`) và nhấn **Deploy**.
+5. Vercel sẽ tự động cấp domain HTTPS tốc độ cao (ví dụ: `https://finance-xyz.vercel.app`).
+
+### 2. Cài đặt web thành App trên điện thoại & máy tính:
+- **Trên Android / Chrome**: Truy cập link Vercel -> Bấm nút **`Cài App`** trên góc màn hình hoặc vào menu 3 chấm (⋮) chọn **"Cài đặt ứng dụng"** / **"Thêm vào Màn hình chính"**.
+- **Trên iPhone / iPad (iOS Safari)**: Truy cập link Vercel trên Safari -> Bấm nút **Chia sẻ** (biểu tượng hộp có mũi tên ⎋) -> Chọn **"Thêm vào MH chính" (Add to Home Screen)**.
+- **Trên Máy tính (Chrome/Edge)**: Bấm biểu tượng Cài đặt trên thanh địa chỉ URL để mở ứng dụng trong cửa sổ độc lập không viền như App desktop.
+
+---
+
+## 💻 Chạy Cục Bộ (Local)
+
 - **Địa chỉ truy cập:** [http://localhost:3000](http://localhost:3000)
-- **Khởi chạy lại máy chủ:**
+- **Khởi chạy máy chủ:**
   ```powershell
   node server.js
   ```
 
----
-
-## 📱 Chạy Phiên Bản Flutter App
-
-```powershell
-# 1. Cài đặt thư viện
-flutter pub get
-
-# 2. Chạy ứng dụng
-flutter run
-```

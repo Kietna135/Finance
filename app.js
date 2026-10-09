@@ -2317,4 +2317,42 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
   });
+
+  // --- 15. PWA SERVICE WORKER & APP INSTALL PROMPT ---
+  let deferredPrompt = null;
+  const installBtn = document.getElementById('installPwaBtn');
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    if (installBtn) installBtn.classList.remove('hidden');
+  });
+
+  if (installBtn) {
+    installBtn.addEventListener('click', async () => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          installBtn.classList.add('hidden');
+        }
+        deferredPrompt = null;
+      } else {
+        alert('Để cài đặt ứng dụng:\n- Trên Android/Chrome: Bấm menu 3 chấm (⋮) -> Chọn "Cài đặt ứng dụng" hoặc "Thêm vào màn hình chính".\n- Trên iOS/Safari: Bấm nút Chia sẻ (⎋) -> Chọn "Thêm vào MH chính" (Add to Home Screen).');
+      }
+    });
+  }
+
+  window.addEventListener('appinstalled', () => {
+    if (installBtn) installBtn.classList.add('hidden');
+    console.log('Finance PWA đã được cài đặt thành công!');
+  });
+
+  // Register Service Worker for offline capability
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js')
+      .then((reg) => console.log('Service Worker registered successfully:', reg.scope))
+      .catch((err) => console.warn('Service Worker registration failed:', err));
+  }
 });
+
