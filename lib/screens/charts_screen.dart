@@ -18,7 +18,8 @@ class _ChartsScreenState extends ConsumerState<ChartsScreen> {
   ChartTimeMode _barMode = ChartTimeMode.week;
   int _selectedBarYear = DateTime.now().year;
 
-  // Donut Chart Time Mode & Stepper State
+  // Donut Chart State
+  TransactionType _chartTxType = TransactionType.expense;
   String _donutMode = 'month'; // 'all', 'month', 'year'
   int _donutMonth = DateTime.now().month;
   int _donutYear = DateTime.now().year;
@@ -56,6 +57,7 @@ class _ChartsScreenState extends ConsumerState<ChartsScreen> {
     }
 
     final filtered = state.allExpenses.where((exp) {
+      if (exp.type != _chartTxType) return false;
       if (_donutMode == 'month') {
         return exp.date.year == _donutYear && exp.date.month == _donutMonth;
       } else if (_donutMode == 'year') {
@@ -81,11 +83,10 @@ class _ChartsScreenState extends ConsumerState<ChartsScreen> {
     final now = DateTime.now();
 
     if (_barMode == ChartTimeMode.month) {
-      // 12 Tháng của năm được chọn
       final monthlyTotals = List.filled(12, 0.0);
 
       for (final exp in state.allExpenses) {
-        if (exp.date.year == _selectedBarYear) {
+        if (exp.type == _chartTxType && exp.date.year == _selectedBarYear) {
           monthlyTotals[exp.date.month - 1] += exp.amount;
         }
       }
@@ -98,7 +99,6 @@ class _ChartsScreenState extends ConsumerState<ChartsScreen> {
         );
       });
     } else if (_barMode == ChartTimeMode.year) {
-      // 5 năm gần nhất
       final currentYear = now.year;
       final startYear = currentYear - 4;
       final yearMap = <int, double>{};
@@ -107,7 +107,7 @@ class _ChartsScreenState extends ConsumerState<ChartsScreen> {
       }
 
       for (final exp in state.allExpenses) {
-        if (yearMap.containsKey(exp.date.year)) {
+        if (exp.type == _chartTxType && yearMap.containsKey(exp.date.year)) {
           yearMap[exp.date.year] = (yearMap[exp.date.year] ?? 0.0) + exp.amount;
         }
       }
@@ -121,7 +121,25 @@ class _ChartsScreenState extends ConsumerState<ChartsScreen> {
       }).toList();
     } else {
       // 7 ngày gần nhất
-      final sortedEntries = state.weeklyTotals.entries.toList()
+      final today = DateTime(now.year, now.month, now.day);
+      final sevenDaysAgo = today.subtract(const Duration(days: 6));
+
+      final Map<DateTime, double> dailyTotals = {};
+      for (int i = 6; i >= 0; i--) {
+        final d = today.subtract(Duration(days: i));
+        dailyTotals[DateTime(d.year, d.month, d.day)] = 0.0;
+      }
+
+      for (final exp in state.allExpenses) {
+        if (exp.type == _chartTxType && !exp.date.isBefore(sevenDaysAgo)) {
+          final k = DateTime(exp.date.year, exp.date.month, exp.date.day);
+          if (dailyTotals.containsKey(k)) {
+            dailyTotals[k] = (dailyTotals[k] ?? 0.0) + exp.amount;
+          }
+        }
+      }
+
+      final sortedEntries = dailyTotals.entries.toList()
         ..sort((a, b) => a.key.compareTo(b.key));
 
       return sortedEntries.map((e) {
@@ -160,7 +178,7 @@ class _ChartsScreenState extends ConsumerState<ChartsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'Phân Tích Chi Tiêu',
+          'Phân Tích Thu Chi',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
       ),
@@ -174,14 +192,35 @@ class _ChartsScreenState extends ConsumerState<ChartsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Thẻ tổng quan chi tiêu
+              // Type Segment (Chi tiêu vs Thu nhập)
+              SegmentedButton<TransactionType>(
+                segments: const [
+                  ButtonSegment(
+                    value: TransactionType.expense,
+                    label: Text('Phân Tích Chi Tiêu'),
+                    icon: Icon(Icons.arrow_downward_rounded, color: Colors.red, size: 18),
+                  ),
+                  ButtonSegment(
+                    value: TransactionType.income,
+                    label: Text('Phân Tích Thu Nhập'),
+                    icon: Icon(Icons.arrow_upward_rounded, color: Colors.green, size: 18),
+                  ),
+                ],
+                selected: {_chartTxType},
+                onSelectionChanged: (set) {
+                  setState(() => _chartTxType = set.first);
+                },
+              ),
+              const SizedBox(height: 16),
+
+              // Overview Summary Card
               Card(
                 elevation: 0,
-                color: theme.colorScheme.primaryContainer.withOpacity(0.4),
+                color: _chartTxType.color.withValues(alpha: 0.1),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                   side: BorderSide(
-                    color: theme.colorScheme.primary.withOpacity(0.2),
+                    color: _chartTxType.color.withValues(alpha: 0.2),
                   ),
                 ),
                 child: Padding(
@@ -193,17 +232,21 @@ class _ChartsScreenState extends ConsumerState<ChartsScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Tổng chi tiêu toàn thời gian',
+                            _chartTxType == TransactionType.expense
+                                ? 'Tổng chi tiêu toàn thời gian'
+                                : 'Tổng thu nhập toàn thời gian',
                             style: theme.textTheme.bodyMedium?.copyWith(
                               color: theme.colorScheme.onSurfaceVariant,
                             ),
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            _formatVnd(state.totalAmount),
+                            _formatVnd(_chartTxType == TransactionType.expense
+                                ? state.totalExpense
+                                : state.totalIncome),
                             style: theme.textTheme.headlineSmall?.copyWith(
                               fontWeight: FontWeight.bold,
-                              color: theme.colorScheme.primary,
+                              color: _chartTxType.color,
                             ),
                           ),
                         ],
@@ -211,7 +254,7 @@ class _ChartsScreenState extends ConsumerState<ChartsScreen> {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.primary,
+                          color: _chartTxType.color,
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(
@@ -226,7 +269,7 @@ class _ChartsScreenState extends ConsumerState<ChartsScreen> {
               ),
               const SizedBox(height: 24),
 
-              // Phần 1: Biểu đồ tròn phân bổ danh mục (Kéo vuốt hoặc chuyển tháng/năm)
+              // Section 1: Donut Chart
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -253,9 +296,9 @@ class _ChartsScreenState extends ConsumerState<ChartsScreen> {
                       ),
                     ],
                     selected: {_donutMode},
-                    onSelectionChanged: (newSelection) {
+                    onSelectionChanged: (newSet) {
                       setState(() {
-                        _donutMode = newSelection.first;
+                        _donutMode = newSet.first;
                       });
                     },
                     style: SegmentedButton.styleFrom(
@@ -264,93 +307,78 @@ class _ChartsScreenState extends ConsumerState<ChartsScreen> {
                   ),
                 ],
               ),
+              const SizedBox(height: 8),
+
+              // Stepper (prev / next for Month / Year)
+              if (_donutMode != 'all')
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.chevron_left_rounded),
+                        onPressed: () => _stepDonutPeriod(-1),
+                        tooltip: 'Thời gian trước',
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surfaceContainerHighest
+                              .withValues(alpha: 0.5),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          donutPeriodLabel,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.chevron_right_rounded),
+                        onPressed: () => _stepDonutPeriod(1),
+                        tooltip: 'Thời gian sau',
+                      ),
+                    ],
+                  ),
+                ),
               const SizedBox(height: 12),
 
               Card(
                 elevation: 1,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
-                  side: BorderSide(
-                    color: theme.colorScheme.outlineVariant.withOpacity(0.3),
-                  ),
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                  padding: const EdgeInsets.all(20.0),
                   child: Column(
                     children: [
-                      // Thanh điều hướng chu kỳ có nút < > và cử chỉ vuốt
-                      if (_donutMode != 'all')
-                        Container(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.surfaceVariant.withOpacity(0.4),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.chevron_left_rounded),
-                                onPressed: () => _stepDonutPeriod(-1), // Lùi 1 tháng / năm
-                                tooltip: 'Lùi 1 chu kỳ (hoặc vuốt sang phải)',
-                              ),
-                              Column(
-                                children: [
-                                  Text(
-                                    donutPeriodLabel,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 15,
-                                      color: theme.colorScheme.primary,
-                                    ),
-                                  ),
-                                  const Text(
-                                    'Kéo / vuốt sang trái hoặc phải để đổi',
-                                    style: TextStyle(fontSize: 10, color: Colors.grey),
-                                  ),
-                                ],
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.chevron_right_rounded),
-                                onPressed: () => _stepDonutPeriod(1), // Tiến 1 tháng / năm
-                                tooltip: 'Tiến 1 chu kỳ (hoặc vuốt sang trái)',
-                              ),
-                            ],
-                          ),
-                        ),
-
-                      // Vùng biểu đồ Donut có hỗ trợ cử chỉ GestureDetector
-                      GestureDetector(
-                        onHorizontalDragEnd: (details) {
-                          if (_donutMode == 'all') return;
-                          if (details.primaryVelocity != null) {
-                            if (details.primaryVelocity! < -150) {
-                              // Vuốt sang trái -> Tiến 1 tháng/năm
-                              _stepDonutPeriod(1);
-                            } else if (details.primaryVelocity! > 150) {
-                              // Vuốt sang phải -> Lùi 1 tháng/năm
-                              _stepDonutPeriod(-1);
-                            }
-                          }
-                        },
+                      SizedBox(
+                        height: 240,
                         child: CustomPieChart(
-                          data: donutTotals,
+                          categoryTotals: donutTotals,
                           totalAmount: donutTotalAmount,
                         ),
                       ),
+                      const SizedBox(height: 16),
+                      _buildCategoryLegend(context, donutTotals, donutTotalAmount),
                     ],
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 28),
 
-              // Phần 2: Biểu đồ cột đa chế độ (7 Ngày / 12 Tháng / Hàng Năm)
+              // Section 2: Bar Chart
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Xu hướng chi tiêu',
+                    'Xu hướng giao dịch',
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -360,7 +388,7 @@ class _ChartsScreenState extends ConsumerState<ChartsScreen> {
                     segments: const [
                       ButtonSegment(
                         value: ChartTimeMode.week,
-                        label: Text('Tuần', style: TextStyle(fontSize: 11)),
+                        label: Text('7 Ngày', style: TextStyle(fontSize: 11)),
                       ),
                       ButtonSegment(
                         value: ChartTimeMode.month,
@@ -372,9 +400,9 @@ class _ChartsScreenState extends ConsumerState<ChartsScreen> {
                       ),
                     ],
                     selected: {_barMode},
-                    onSelectionChanged: (newSelection) {
+                    onSelectionChanged: (newSet) {
                       setState(() {
-                        _barMode = newSelection.first;
+                        _barMode = newSet.first;
                       });
                     },
                     style: SegmentedButton.styleFrom(
@@ -384,27 +412,87 @@ class _ChartsScreenState extends ConsumerState<ChartsScreen> {
                 ],
               ),
               const SizedBox(height: 12),
+
               Card(
                 elevation: 1,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
-                  side: BorderSide(
-                    color: theme.colorScheme.outlineVariant.withOpacity(0.3),
-                  ),
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(14, 20, 14, 12),
-                  child: FlexibleBarChart(
-                    items: barItems,
-                    mode: _barMode,
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
+                    children: [
+                      SizedBox(
+                        height: 220,
+                        child: WeeklyBarChart(
+                          items: barItems,
+                          mode: _barMode,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildCategoryLegend(
+    BuildContext context,
+    Map<ExpenseCategory, double> totals,
+    double totalAmount,
+  ) {
+    final theme = Theme.of(context);
+    final sortedCategories = totals.entries
+        .where((e) => e.value > 0)
+        .toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    if (sortedCategories.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Text(
+            'Không có dữ liệu trong khoảng thời gian này',
+            style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+          ),
+        ),
+      );
+    }
+
+    return Wrap(
+      spacing: 12,
+      runSpacing: 8,
+      alignment: WrapAlignment.center,
+      children: sortedCategories.map((entry) {
+        final cat = entry.key;
+        final amount = entry.value;
+        final percentage = totalAmount > 0 ? (amount / totalAmount * 100) : 0.0;
+
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 12,
+              height: 12,
+              decoration: BoxDecoration(
+                color: cat.color,
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              '${cat.displayName} (${percentage.toStringAsFixed(1)}%)',
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        );
+      }).toList(),
     );
   }
 }

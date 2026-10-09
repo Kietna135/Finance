@@ -9,9 +9,10 @@ class CustomPieChart extends StatefulWidget {
 
   const CustomPieChart({
     super.key,
-    required this.data,
+    Map<ExpenseCategory, double>? data,
+    Map<ExpenseCategory, double>? categoryTotals,
     required this.totalAmount,
-  });
+  }) : data = data ?? categoryTotals ?? const {};
 
   @override
   State<CustomPieChart> createState() => _CustomPieChartState();

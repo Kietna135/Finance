@@ -18,54 +18,89 @@ class ExpenseTrackerApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const seedColor = Color(0xFF1976D2);
+    const primaryBlue = Color(0xFF2563EB);
+    const bgLight = Color(0xFFF8FAFC);
+    const textMain = Color(0xFF0F172A);
 
     return MaterialApp(
-      title: 'Quản Lý Chi Phí & OCR',
+      title: 'Finance - Quản Lý Chi Phí & OCR',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
+        brightness: Brightness.light,
+        scaffoldBackgroundColor: bgLight,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: seedColor,
+          seedColor: primaryBlue,
           brightness: Brightness.light,
+          primary: primaryBlue,
+          surface: Colors.white,
+          surfaceContainerHighest: const Color(0xFFF1F5F9),
+          outlineVariant: const Color(0xFFE2E8F0),
         ),
-        scaffoldBackgroundColor: const Color(0xFFF8F9FA),
         appBarTheme: const AppBarTheme(
           centerTitle: false,
           elevation: 0,
-          backgroundColor: Colors.transparent,
+          backgroundColor: Colors.white,
+          foregroundColor: textMain,
           surfaceTintColor: Colors.transparent,
+          titleTextStyle: TextStyle(
+            color: textMain,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+          iconTheme: IconThemeData(color: textMain),
         ),
-        cardTheme: CardTheme(
-          elevation: 1,
+        cardTheme: CardThemeData(
+          elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: Color(0xFFE2E8F0), width: 1),
           ),
           color: Colors.white,
         ),
-      ),
-      darkTheme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: seedColor,
-          brightness: Brightness.dark,
+        navigationBarTheme: NavigationBarThemeData(
+          backgroundColor: Colors.white,
+          elevation: 4,
+          indicatorColor: primaryBlue.withValues(alpha: 0.15),
+          labelTextStyle: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) {
+              return const TextStyle(
+                color: primaryBlue,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              );
+            }
+            return const TextStyle(
+              color: Color(0xFF64748B),
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            );
+          }),
+          iconTheme: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) {
+              return const IconThemeData(color: primaryBlue);
+            }
+            return const IconThemeData(color: Color(0xFF64748B));
+          }),
         ),
-        scaffoldBackgroundColor: const Color(0xFF121212),
-        appBarTheme: const AppBarTheme(
-          centerTitle: false,
-          elevation: 0,
-          backgroundColor: Colors.transparent,
-          surfaceTintColor: Colors.transparent,
-        ),
-        cardTheme: CardTheme(
-          elevation: 1,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: const Color(0xFFF8FAFC),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
           ),
-          color: const Color(0xFF1E1E1E),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: primaryBlue, width: 2),
+          ),
         ),
       ),
-      themeMode: ThemeMode.system,
+      themeMode: ThemeMode.light, // Luôn ưu tiên giao diện Sáng theo yêu cầu
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,

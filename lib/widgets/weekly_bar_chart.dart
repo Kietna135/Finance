@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 
 enum ChartTimeMode { week, month, year }
 
+typedef BarChartItem = ({String label, double amount, bool isHighlight});
+
 class FlexibleBarChart extends StatefulWidget {
-  final List<({String label, double amount, bool isHighlight})> items;
+  final List<BarChartItem> items;
   final ChartTimeMode mode;
 
   const FlexibleBarChart({
@@ -58,21 +60,24 @@ class _FlexibleBarChartState extends State<FlexibleBarChart>
       (prev, elem) => math.max(prev, elem.amount),
     );
 
-    return AnimatedBuilder(
-      animation: _animation,
-      builder: (context, child) {
-        return CustomPaint(
-          size: const Size(double.infinity, 190),
-          painter: _BarChartPainter(
-            items: widget.items,
-            maxValue: maxVal > 0 ? maxVal : 100000,
-            progress: _animation.value,
-            primaryColor: theme.colorScheme.primary,
-            secondaryColor: theme.colorScheme.primaryContainer,
-            gridColor: theme.colorScheme.outlineVariant.withOpacity(0.35),
-            textColor: theme.colorScheme.onSurfaceVariant,
-            mode: widget.mode,
-          ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return AnimatedBuilder(
+          animation: _animation,
+          builder: (context, child) {
+            return CustomPaint(
+              size: Size(constraints.maxWidth, constraints.maxHeight),
+              painter: _BarChartPainter(
+                items: widget.items,
+                maxValue: maxVal,
+                progress: _animation.value,
+                primaryColor: theme.colorScheme.primary,
+                gridColor: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+                textColor: theme.colorScheme.onSurfaceVariant,
+                mode: widget.mode,
+              ),
+            );
+          },
         );
       },
     );
@@ -80,11 +85,10 @@ class _FlexibleBarChartState extends State<FlexibleBarChart>
 }
 
 class _BarChartPainter extends CustomPainter {
-  final List<({String label, double amount, bool isHighlight})> items;
+  final List<BarChartItem> items;
   final double maxValue;
   final double progress;
   final Color primaryColor;
-  final Color secondaryColor;
   final Color gridColor;
   final Color textColor;
   final ChartTimeMode mode;
@@ -94,88 +98,121 @@ class _BarChartPainter extends CustomPainter {
     required this.maxValue,
     required this.progress,
     required this.primaryColor,
-    required this.secondaryColor,
     required this.gridColor,
     required this.textColor,
     required this.mode,
   });
 
-  String _formatCompact(double value) {
-    if (value >= 1000000) {
-      return '${(value / 1000000).toStringAsFixed(1)}M';
-    } else if (value >= 1000) {
-      return '${(value / 1000).toStringAsFixed(0)}k';
-    }
-    return value.toStringAsFixed(0);
-  }
-
   @override
   void paint(Canvas canvas, Size size) {
     if (items.isEmpty) return;
 
-    const bottomPadding = 32.0;
-    const topPadding = 24.0;
+    final bottomPadding = 28.0;
+    final topPadding = 20.0;
     final chartHeight = size.height - bottomPadding - topPadding;
     final count = items.length;
-    final totalSpacing = size.width / count;
-    final barWidth = math.min(
-      mode == ChartTimeMode.month ? 22.0 : 28.0,
-      totalSpacing * (mode == ChartTimeMode.month ? 0.65 : 0.55),
-    );
+    final slotWidth = size.width / count;
+
+    // Responsive bar width based on number of columns
+    final barWidth = mode == ChartTimeMode.month
+        ? (slotWidth * 0.55).clamp(8.0, 18.0)
+        : (slotWidth * 0.45).clamp(16.0, 36.0);
 
     final gridPaint = Paint()
       ..color = gridColor
       ..strokeWidth = 1.0;
 
-    // 3 đường lưới ngang
-    for (int i = 0; i <= 2; i++) {
-      final y = topPadding + chartHeight * (1 - i / 2.0);
-      canvas.drawLine(
-        Offset(0, y),
-        Offset(size.width, y),
-        gridPaint,
-      );
-    }
+    // Background horizontal grid lines (0%, 50%, 100%)
+    canvas.drawLine(
+      Offset(0, size.height - bottomPadding),
+      Offset(size.width, size.height - bottomPadding),
+      gridPaint,
+    );
+    canvas.drawLine(
+      Offset(0, topPadding + chartHeight * 0.5),
+      Offset(size.width, topPadding + chartHeight * 0.5),
+      gridPaint..color = gridColor.withValues(alpha: 0.5),
+    );
 
-    final barPaint = Paint()..style = PaintingStyle.fill;
     final textPainter = TextPainter(
       textDirection: TextDirection.ltr,
       textAlign: TextAlign.center,
     );
 
+    final safeMax = maxValue > 0 ? maxValue : 1.0;
+
     for (int i = 0; i < count; i++) {
       final item = items[i];
-      final x = (i * totalSpacing) + (totalSpacing / 2);
-      final heightRatio = (item.amount / maxValue).clamp(0.0, 1.0);
-      final barHeight = chartHeight * heightRatio * progress;
-      final yTop = topPadding + chartHeight - barHeight;
+      final x = slotWidth * i + slotWidth / 2;
+      final normalizedHeight = (item.amount / safeMax) * chartHeight * progress;
+      final yTop = size.height - bottomPadding - normalizedHeight;
 
-      // Gradient
-      barPaint.shader = LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: item.isHighlight
-            ? [primaryColor, primaryColor.withOpacity(0.75)]
-            : [secondaryColor, secondaryColor.withOpacity(0.5)],
-      ).createShader(Rect.fromLTWH(x - barWidth / 2, yTop, barWidth, barHeight));
-
-      final rrect = RRect.fromRectAndCorners(
-        Rect.fromLTWH(x - barWidth / 2, yTop, barWidth, math.max(barHeight, 4.0)),
-        topLeft: const Radius.circular(5),
-        topRight: const Radius.circular(5),
-        bottomLeft: const Radius.circular(2),
-        bottomRight: const Radius.circular(2),
+      // Background column track
+      final trackPaint = Paint()
+        ..color = gridColor.withValues(alpha: 0.15)
+        ..style = PaintingStyle.fill;
+      final trackRRect = RRect.fromRectAndRadius(
+        Rect.fromLTRB(
+          x - barWidth / 2,
+          topPadding,
+          x + barWidth / 2,
+          size.height - bottomPadding,
+        ),
+        Radius.circular(barWidth / 2),
       );
-      canvas.drawRRect(rrect, barPaint);
+      canvas.drawRRect(trackRRect, trackPaint);
 
-      // Nhãn số tiền trên đỉnh
-      if (item.amount > 0) {
+      // Active fill bar
+      if (normalizedHeight > 0) {
+        final barPaint = Paint()
+          ..style = PaintingStyle.fill
+          ..shader = LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: item.isHighlight
+                ? [primaryColor, primaryColor.withValues(alpha: 0.7)]
+                : [
+                    primaryColor.withValues(alpha: 0.7),
+                    primaryColor.withValues(alpha: 0.4),
+                  ],
+          ).createShader(
+            Rect.fromLTRB(
+              x - barWidth / 2,
+              yTop,
+              x + barWidth / 2,
+              size.height - bottomPadding,
+            ),
+          );
+
+        final barRRect = RRect.fromRectAndRadius(
+          Rect.fromLTRB(
+            x - barWidth / 2,
+            yTop,
+            x + barWidth / 2,
+            size.height - bottomPadding,
+          ),
+          Radius.circular(barWidth / 2),
+        );
+        canvas.drawRRect(barRRect, barPaint);
+      }
+
+      // Value label on top of bar
+      if (item.amount > 0 && mode != ChartTimeMode.month) {
+        String displayVal;
+        if (item.amount >= 1000000) {
+          displayVal = '${(item.amount / 1000000).toStringAsFixed(1)}tr';
+        } else if (item.amount >= 1000) {
+          displayVal = '${(item.amount / 1000).toInt()}k';
+        } else {
+          displayVal = '${item.amount.toInt()}';
+        }
+
         textPainter.text = TextSpan(
-          text: _formatCompact(item.amount),
+          text: displayVal,
           style: TextStyle(
             color: item.isHighlight ? primaryColor : textColor,
-            fontSize: mode == ChartTimeMode.month ? 8.5 : 10.0,
-            fontWeight: FontWeight.w600,
+            fontSize: 9.5,
+            fontWeight: FontWeight.bold,
           ),
         );
         textPainter.layout();
@@ -185,7 +222,7 @@ class _BarChartPainter extends CustomPainter {
         );
       }
 
-      // Nhãn trục hoành (T1..T12, Năm, Ngày)
+      // X Axis label
       textPainter.text = TextSpan(
         text: item.label,
         style: TextStyle(
@@ -208,5 +245,49 @@ class _BarChartPainter extends CustomPainter {
         oldDelegate.items != items ||
         oldDelegate.maxValue != maxValue ||
         oldDelegate.mode != mode;
+  }
+}
+
+class WeeklyBarChart extends StatelessWidget {
+  final Map<DateTime, double>? weeklyData;
+  final List<BarChartItem>? items;
+  final ChartTimeMode mode;
+
+  const WeeklyBarChart({
+    super.key,
+    this.weeklyData,
+    this.items,
+    this.mode = ChartTimeMode.week,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (items != null) {
+      return FlexibleBarChart(items: items!, mode: mode);
+    }
+
+    final data = weeklyData ?? {};
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final dayNames = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+
+    final chartItems = List.generate(7, (index) {
+      final date = today.subtract(Duration(days: 6 - index));
+      final dateKey = DateTime(date.year, date.month, date.day);
+      final amount = data[dateKey] ?? 0.0;
+      final label = index == 6 ? 'H.nay' : dayNames[date.weekday % 7];
+      final isHighlight = index == 6;
+
+      return (
+        label: label,
+        amount: amount,
+        isHighlight: isHighlight,
+      );
+    });
+
+    return FlexibleBarChart(
+      items: chartItems,
+      mode: mode,
+    );
   }
 }

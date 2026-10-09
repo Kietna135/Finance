@@ -28,13 +28,14 @@ dependencies:
   image_picker: ^1.0.7
 
   # Formatting & Utilities
-  intl: ^0.19.0
+  intl: any
   uuid: ^4.3.3
+  share_plus: ^13.3.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^3.0.0
+  flutter_lints: any
 
 flutter:
   uses-material-design: true

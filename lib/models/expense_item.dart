@@ -6,6 +6,7 @@ class ExpenseItem {
   final double amount;
   final DateTime date;
   final ExpenseCategory category;
+  final TransactionType type;
   final String? receiptImagePath;
   final String? rawOcrText;
   final String? note;
@@ -17,11 +18,16 @@ class ExpenseItem {
     required this.amount,
     required this.date,
     required this.category,
+    TransactionType? type,
     this.receiptImagePath,
     this.rawOcrText,
     this.note,
     DateTime? createdAt,
-  }) : createdAt = createdAt ?? DateTime.now();
+  })  : type = type ?? category.defaultType,
+        createdAt = createdAt ?? DateTime.now();
+
+  bool get isExpense => type == TransactionType.expense;
+  bool get isIncome => type == TransactionType.income;
 
   Map<String, dynamic> toMap() {
     return {
@@ -30,6 +36,7 @@ class ExpenseItem {
       'amount': amount,
       'date': date.toIso8601String(),
       'category': category.name,
+      'type': type.name,
       'receiptImagePath': receiptImagePath,
       'rawOcrText': rawOcrText,
       'note': note,
@@ -38,12 +45,23 @@ class ExpenseItem {
   }
 
   factory ExpenseItem.fromMap(Map<String, dynamic> map) {
+    final cat = ExpenseCategory.fromString(map['category'] as String?);
+    TransactionType txType;
+    if (map['type'] != null) {
+      txType = (map['type'] as String).toLowerCase() == 'income'
+          ? TransactionType.income
+          : TransactionType.expense;
+    } else {
+      txType = cat.defaultType;
+    }
+
     return ExpenseItem(
       id: map['id'] as String,
       merchant: map['merchant'] as String? ?? 'Chưa xác định',
       amount: (map['amount'] as num).toDouble(),
       date: DateTime.parse(map['date'] as String),
-      category: ExpenseCategory.fromString(map['category'] as String?),
+      category: cat,
+      type: txType,
       receiptImagePath: map['receiptImagePath'] as String?,
       rawOcrText: map['rawOcrText'] as String?,
       note: map['note'] as String?,
@@ -59,6 +77,7 @@ class ExpenseItem {
     double? amount,
     DateTime? date,
     ExpenseCategory? category,
+    TransactionType? type,
     String? receiptImagePath,
     String? rawOcrText,
     String? note,
@@ -70,6 +89,7 @@ class ExpenseItem {
       amount: amount ?? this.amount,
       date: date ?? this.date,
       category: category ?? this.category,
+      type: type ?? this.type,
       receiptImagePath: receiptImagePath ?? this.receiptImagePath,
       rawOcrText: rawOcrText ?? this.rawOcrText,
       note: note ?? this.note,

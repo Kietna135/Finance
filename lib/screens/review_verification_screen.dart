@@ -84,6 +84,7 @@ class _ReviewVerificationScreenState
       amount: amount,
       date: _selectedDate,
       category: _selectedCategory,
+      type: TransactionType.expense,
       receiptImagePath: widget.imagePath,
       rawOcrText: widget.parsedResult.rawText,
       note: _noteController.text.trim().isNotEmpty

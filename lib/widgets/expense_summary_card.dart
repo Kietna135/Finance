@@ -1,24 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/category_model.dart';
+import '../models/expense_item.dart';
 
 class ExpenseSummaryCard extends StatelessWidget {
+  final ExpenseItem? expense;
   final String merchant;
   final double amount;
   final DateTime date;
   final ExpenseCategory category;
+  final TransactionType type;
   final VoidCallback onTap;
 
-  const ExpenseSummaryCard({
+  ExpenseSummaryCard({
     super.key,
-    required this.merchant,
-    required this.amount,
-    required this.date,
-    this.category = ExpenseCategory.other,
+    this.expense,
+    String? merchant,
+    double? amount,
+    DateTime? date,
+    ExpenseCategory? category,
+    TransactionType? type,
     required this.onTap,
-  });
+  })  : merchant = expense?.merchant ?? merchant ?? '',
+        amount = expense?.amount ?? amount ?? 0.0,
+        date = expense?.date ?? date ?? DateTime.now(),
+        category = expense?.category ?? category ?? ExpenseCategory.other,
+        type = expense?.type ?? type ?? TransactionType.expense;
 
-  /// Định dạng số tiền kiểu Việt Nam Đồng (###.### đ)
   String _formatVnd(double value) {
     final formatter = NumberFormat.currency(
       locale: 'vi_VN',
@@ -28,7 +36,6 @@ class ExpenseSummaryCard extends StatelessWidget {
     return formatter.format(value);
   }
 
-  /// Định dạng ngày (DD/MM/YYYY)
   String _formatDate(DateTime dt) {
     return DateFormat('dd/MM/yyyy').format(dt);
   }
@@ -36,30 +43,32 @@ class ExpenseSummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isIncome = type == TransactionType.income;
+    final amountColor = isIncome ? const Color(0xFF2E7D32) : const Color(0xFFE53935);
 
     return Card(
-      elevation: 2.0,
-      shadowColor: theme.colorScheme.shadow.withOpacity(0.08),
+      elevation: 1.0,
+      margin: const EdgeInsets.only(bottom: 10.0),
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16.0),
         side: BorderSide(
-          color: theme.colorScheme.outlineVariant.withOpacity(0.35),
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.35),
           width: 1.0,
         ),
       ),
       child: InkWell(
         onTap: onTap,
-        splashColor: theme.colorScheme.primary.withOpacity(0.1),
-        highlightColor: theme.colorScheme.primary.withOpacity(0.05),
+        splashColor: theme.colorScheme.primary.withValues(alpha: 0.1),
+        highlightColor: theme.colorScheme.primary.withValues(alpha: 0.05),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
           child: Row(
             children: [
-              // 1. Icon inside a circular container indicating category
+              // Icon inside category background
               Container(
-                width: 46.0,
-                height: 46.0,
+                width: 44.0,
+                height: 44.0,
                 decoration: BoxDecoration(
                   color: category.backgroundColor,
                   shape: BoxShape.circle,
@@ -68,12 +77,12 @@ class ExpenseSummaryCard extends StatelessWidget {
                 child: Icon(
                   category.icon,
                   color: category.color,
-                  size: 24.0,
+                  size: 22.0,
                 ),
               ),
               const SizedBox(width: 14.0),
 
-              // 2. Store name and date stacked vertically with CrossAxisAlignment.start
+              // Merchant & Details
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -86,22 +95,29 @@ class ExpenseSummaryCard extends StatelessWidget {
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w600,
                         letterSpacing: -0.2,
+                        fontSize: 15,
                       ),
                     ),
                     const SizedBox(height: 4.0),
                     Row(
                       children: [
-                        Icon(
-                          Icons.calendar_today_outlined,
-                          size: 13.0,
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                        const SizedBox(width: 4.0),
                         Text(
-                          _formatDate(date),
-                          style: theme.textTheme.bodySmall?.copyWith(
+                          category.displayName,
+                          style: TextStyle(
+                            fontSize: 12,
                             color: theme.colorScheme.onSurfaceVariant,
                             fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        Text(
+                          ' • ',
+                          style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+                        ),
+                        Text(
+                          _formatDate(date),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: theme.colorScheme.onSurfaceVariant,
                           ),
                         ),
                       ],
@@ -111,12 +127,12 @@ class ExpenseSummaryCard extends StatelessWidget {
               ),
               const SizedBox(width: 12.0),
 
-              // 3. Highlighted monetary amount formatted as Vietnamese Dong ( ###.### đ )
+              // Amount
               Text(
-                _formatVnd(amount),
+                '${isIncome ? '+' : '-'}${_formatVnd(amount)}',
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w700,
-                  color: theme.colorScheme.primary,
+                  color: amountColor,
                   letterSpacing: -0.3,
                 ),
               ),
