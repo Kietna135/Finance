@@ -1,0 +1,40 @@
+name: quan_ly_tai_chinh
+description: "Cong cu theo doi chi phi va phan tich hoa don bang OCR (Flutter & Dart)"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  
+  # State Management
+  flutter_riverpod: ^2.5.1
+
+  # Local Database
+  sqflite: ^2.3.2
+  path: ^1.9.0
+  path_provider: ^2.1.2
+
+  # Machine Learning & OCR
+  google_mlkit_text_recognition: ^0.13.0
+
+  # Camera & Image
+  camera: ^0.10.5+9
+  image_picker: ^1.0.7
+
+  # Formatting & Utilities
+  intl: ^0.19.0
+  uuid: ^4.3.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true

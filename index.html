@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Finance - Quản Lý Chi Phí & OCR Phân Tích Hóa Đơn</title>
+  <meta name="description" content="Ứng dụng quản lý tài chính cá nhân Mini-Project 3 tích hợp OCR trích xuất hóa đơn tự động, biểu đồ Canvas, Lịch thu chi và Cảnh báo ngân sách.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Top Navigation Header -->
+    <header class="top-nav">
+      <div class="brand">
+        <div class="logo-icon">
+          <i class="fa-solid fa-receipt"></i>
+        </div>
+        <div>
+          <h1>Finance <span class="badge-tag">OCR</span></h1>
+          <p class="subtitle">Quản lý chi tiêu & OCR trích xuất hóa đơn</p>
+        </div>
+      </div>
+      <div class="nav-actions">
+        <button id="themeToggleBtn" class="icon-btn" title="Chuyển đổi giao diện Sáng / Tối">
+          <i class="fa-solid fa-moon"></i>
+        </button>
+        <button id="openCategoryManagerBtn" class="btn btn-secondary" title="Quản lý & Tùy chỉnh danh mục">
+          <i class="fa-solid fa-shapes"></i> Danh Mục
+        </button>
+        <button id="openBudgetBtn" class="btn btn-secondary">
+          <i class="fa-solid fa-bullseye"></i> Ngân Sách
+        </button>
+        <button id="openAddBtn" class="btn btn-secondary">
+          <i class="fa-solid fa-plus"></i> Nhập Tay
+        </button>
+        <button id="openScanBtn" class="btn btn-primary">
+          <i class="fa-solid fa-camera"></i> Quét Hóa Đơn
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Tabs Bar -->
+    <nav class="tab-bar">
+      <button class="tab-btn active" data-tab="dashboard">
+        <i class="fa-solid fa-chart-pie"></i> Tổng Quan
+      </button>
+      <button class="tab-btn" data-tab="calendar">
+        <i class="fa-solid fa-calendar-days"></i> Lịch Thu Chi
+      </button>
+      <button class="tab-btn" data-tab="analytics">
+        <i class="fa-solid fa-chart-simple"></i> Phân Tích Canvas
+      </button>
+      <button class="tab-btn" data-tab="budget">
+        <i class="fa-solid fa-wallet"></i> Ngân Sách
+      </button>
+      <button class="tab-btn" data-tab="transactions">
+        <i class="fa-solid fa-list-check"></i> Sổ Giao Dịch
+      </button>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      
+      <!-- ==================== TAB 1: TỔNG QUAN (DASHBOARD) ==================== -->
+      <section id="tab-dashboard" class="tab-pane active">
+        <!-- Balance Card with Gradient -->
+        <div class="balance-card">
+          <div class="balance-info">
+            <div class="balance-badge">
+              <i class="fa-solid fa-bolt"></i> OCR Siêu Nhanh (&lt;100ms)
+            </div>
+            <div class="balance-split">
+              <div>
+                <span class="balance-label">Tổng chi tiêu tháng này</span>
+                <div class="balance-amount" id="dashTotalSpent">0 đ</div>
+              </div>
+              <div class="budget-stat-box">
+                <span class="balance-label">Ngân sách mục tiêu</span>
+                <div class="budget-amount" id="dashBudgetLimit">5.000.000 đ</div>
+              </div>
+            </div>
+
+            <!-- Dynamic Progress Track -->
+            <div class="budget-progress-container">
+              <div class="budget-progress-header">
+                <span id="dashBudgetPercent">Đã dùng: 0%</span>
+                <span id="dashBudgetRemaining">Còn lại: 0 đ</span>
+              </div>
+              <div class="progress-track">
+                <div class="progress-bar" id="dashProgressBar" style="width: 0%;"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="balance-actions">
+            <button class="action-card-btn" id="dashScanBtn">
+              <i class="fa-solid fa-expand"></i>
+              <span>Quét Hóa Đơn</span>
+            </button>
+            <button class="action-card-btn" id="dashAddBtn">
+              <i class="fa-solid fa-pen-to-square"></i>
+              <span>Thêm Thủ Công</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Custom Canvas Charts Preview Grid -->
+        <div class="dashboard-grid">
+          <!-- Weekly Bar Canvas Mini -->
+          <div class="card chart-card">
+            <div class="card-header">
+              <h3><i class="fa-solid fa-chart-column"></i> Chi tiêu 7 ngày gần nhất</h3>
+              <span class="badge">Custom Canvas</span>
+            </div>
+            <div class="canvas-wrapper">
+              <canvas id="weeklyBarCanvasMini" width="480" height="200"></canvas>
+            </div>
+          </div>
+
+          <!-- Category Donut Canvas Mini -->
+          <div class="card chart-card">
+            <div class="card-header">
+              <h3><i class="fa-solid fa-chart-pie"></i> Cơ cấu danh mục</h3>
+              <span class="badge">Donut Canvas</span>
+            </div>
+            <div class="canvas-wrapper">
+              <canvas id="categoryDonutCanvasMini" width="480" height="200"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Transactions using ExpenseSummaryCard -->
+        <div class="section-title-row">
+          <h3><i class="fa-solid fa-clock-rotate-left"></i> Giao dịch gần đây (ExpenseSummaryCard)</h3>
+          <button class="btn-text" id="viewAllTransBtn">Xem tất cả <i class="fa-solid fa-arrow-right"></i></button>
+        </div>
+        <div id="recentExpenseList" class="expense-list"></div>
+      </section>
+
+
+      <!-- ==================== TAB 2: LỊCH THU CHI (CALENDAR VIEW) ==================== -->
+      <section id="tab-calendar" class="tab-pane">
+        <!-- Month Stepper < 10/2026 > -->
+        <div class="card">
+          <div class="period-navigator-pill">
+            <button class="nav-pill-btn" id="calPrevMonth"><i class="fa-solid fa-chevron-left"></i></button>
+            <span class="nav-pill-title" id="calPeriodTitle">10/2026</span>
+            <button class="nav-pill-btn" id="calNextMonth"><i class="fa-solid fa-chevron-right"></i></button>
+          </div>
+
+          <!-- Month Calendar Grid -->
+          <div class="calendar-card">
+            <div class="calendar-weekdays">
+              <span>T2</span><span>T3</span><span>T4</span><span>T5</span><span>T6</span><span class="sat">T7</span><span class="sun">CN</span>
+            </div>
+            <div class="calendar-days" id="calendarDaysGrid"></div>
+          </div>
+
+          <!-- Summary Trio for Calendar Month -->
+          <div class="finance-summary-trio">
+            <div class="trio-item">
+              <span class="trio-label">Thu nhập</span>
+              <span class="trio-value income-val" id="calTotalIncome">+0đ</span>
+            </div>
+            <div class="trio-item">
+              <span class="trio-label">Chi tiêu</span>
+              <span class="trio-value expense-val" id="calTotalExpense">-0đ</span>
+            </div>
+            <div class="trio-item">
+              <span class="trio-label">Tổng</span>
+              <span class="trio-value net-val" id="calTotalNet">+0đ</span>
+            </div>
+          </div>
+
+          <!-- Day Transactions List -->
+          <div class="section-title-row" style="margin-top:14px;">
+            <h4 id="selectedDayLabel">Giao dịch trong ngày</h4>
+            <span id="selectedDayTotal" class="day-total-badge">0đ</span>
+          </div>
+          <div class="expense-list" id="calendarDayList"></div>
+        </div>
+      </section>
+
+
+      <!-- ==================== TAB 3: PHÂN TÍCH CANVAS (CHARTS WITH SWIPE) ==================== -->
+      <section id="tab-analytics" class="tab-pane">
+        <div class="analytics-grid">
+          <!-- Donut Pie Chart Detailed with Drag & Swipe Navigation -->
+          <div class="card">
+            <div class="card-header">
+              <h3><i class="fa-solid fa-chart-pie"></i> Phân bổ theo danh mục (Donut Canvas)</h3>
+              <div class="chart-time-toggle" id="donutTimeToggle">
+                <button class="time-btn" data-donut-time="all">Tất cả</button>
+                <button class="time-btn active" data-donut-time="month">Theo Tháng</button>
+                <button class="time-btn" data-donut-time="year">Theo Năm</button>
+              </div>
+            </div>
+
+            <!-- Swipe Navigator Toolbar -->
+            <div id="donutSwipeNavigator" class="swipe-navigator">
+              <button id="donutPrevBtn" class="nav-arrow-btn" title="Lùi 1 chu kỳ (hoặc vuốt sang phải)">
+                <i class="fa-solid fa-chevron-left"></i>
+              </button>
+              <div class="swipe-current-label">
+                <span id="donutCurrentPeriodLabel">Tháng 10/2026</span>
+                <span class="swipe-hint"><i class="fa-solid fa-arrows-left-right"></i> Kéo/vuốt sang trái hoặc phải để đổi</span>
+              </div>
+              <button id="donutNextBtn" class="nav-arrow-btn" title="Tiến 1 chu kỳ (hoặc vuốt sang trái)">
+                <i class="fa-solid fa-chevron-right"></i>
+              </button>
+            </div>
+
+            <div class="canvas-center-box swipeable-canvas-box" id="donutCanvasContainer">
+              <canvas id="categoryDonutCanvasFull" width="360" height="360"></canvas>
+            </div>
+            <div id="donutLegendContainer" class="donut-legend"></div>
+          </div>
+
+          <!-- Flexible Bar Chart Detailed (7 Ngày / 12 Tháng / Hàng Năm) -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h3><i class="fa-solid fa-chart-column"></i> Xu hướng chi tiêu</h3>
+                <span class="sub-header-text" id="chartTimeSubtitle">Hiển thị dữ liệu 7 ngày gần nhất</span>
+              </div>
+              <div class="chart-controls-wrapper">
+                <div class="chart-time-toggle" id="barTimeToggle">
+                  <button class="time-btn active" data-mode="week">7 Ngày</button>
+                  <button class="time-btn" data-mode="month">12 Tháng</button>
+                  <button class="time-btn" data-mode="year">Hàng Năm</button>
+                </div>
+                <!-- Dropdown chọn năm khi xem 12 tháng -->
+                <div id="yearSelectContainer" class="chart-picker-box hidden">
+                  <label for="chartYearSelect"><i class="fa-regular fa-calendar-check"></i> Chọn năm:</label>
+                  <select id="chartYearSelect" class="filter-select mini-select"></select>
+                </div>
+                <!-- Dropdown chọn khoảng năm -->
+                <div id="yearRangeContainer" class="chart-picker-box hidden">
+                  <label for="chartYearRangeSelect"><i class="fa-solid fa-timeline"></i> Phạm vi:</label>
+                  <select id="chartYearRangeSelect" class="filter-select mini-select">
+                    <option value="3">3 năm gần đây</option>
+                    <option value="5" selected>5 năm gần đây</option>
+                    <option value="all">Toàn bộ lịch sử</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="canvas-wrapper">
+              <canvas id="weeklyBarCanvasFull" width="560" height="260"></canvas>
+            </div>
+            <div class="category-breakdown-list" id="categoryBreakdownList"></div>
+          </div>
+        </div>
+      </section>
+
+
+      <!-- ==================== TAB 4: NGÂN SÁCH (BUDGET SCREEN) ==================== -->
+      <section id="tab-budget" class="tab-pane">
+        <div class="card">
+          <div class="card-header">
+            <h3><i class="fa-solid fa-wallet"></i> Quản Lý Hạn Mức Ngân Sách</h3>
+            <button class="btn btn-secondary" id="editMasterBudgetBtn"><i class="fa-solid fa-pen"></i> Chỉnh sửa hạn mức</button>
+          </div>
+
+          <!-- Master Budget Card -->
+          <div class="budget-master-box">
+            <div class="budget-card-top">
+              <span class="budget-title">Tổng ngân sách tháng</span>
+              <div class="budget-remaining-text">Còn lại: <strong id="budgetScreenRemaining">0 đ</strong></div>
+            </div>
+            <div class="progress-track" style="height:10px;">
+              <div class="progress-bar" id="budgetScreenBar" style="width: 0%;"></div>
+            </div>
+            <div class="budget-card-bottom">
+              <span id="budgetScreenLimit">Ngân sách: 5.000.000 đ</span>
+              <span id="budgetScreenSpent">Đã chi: 0 đ (0%)</span>
+            </div>
+          </div>
+
+          <!-- Budget Allocation Summary Bar -->
+          <div class="budget-allocation-status-card" id="budgetAllocationCard" style="margin-top: 14px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <span style="font-size:12px; font-weight:700; color:var(--text-muted);">
+                <i class="fa-solid fa-chart-pie"></i> Phân bổ hạn mức danh mục
+              </span>
+              <span id="allocationStatusText" style="font-size:12px; font-weight:800; color:var(--primary);">
+                Đã phân bổ: 4.700.000 đ / 5.000.000 đ (94%)
+              </span>
+            </div>
+            <div class="progress-track" style="height:6px; margin:0;">
+              <div class="progress-bar" id="allocationProgressBar" style="width: 94%; background: var(--primary);"></div>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-muted); margin-top:4px;">
+              <span id="unallocatedBudgetText">Khả dụng chưa phân bổ: 300.000 đ</span>
+              <span style="font-style:italic;">* Quy tắc: Tổng các hạn mức &le; Tổng ngân sách</span>
+            </div>
+          </div>
+
+          <div class="section-title-row" style="margin-top:20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+            <h3><i class="fa-solid fa-list-check"></i> Hạn mức theo từng danh mục</h3>
+            <button class="btn btn-secondary btn-sm" id="addCategoryBudgetBtn">
+              <i class="fa-solid fa-plus"></i> Đặt hạn mức danh mục
+            </button>
+          </div>
+          <div class="category-budgets-list" id="categoryBudgetsList"></div>
+        </div>
+      </section>
+
+
+      <!-- ==================== TAB 5: SỔ GIAO DỊCH (TRANSACTION LIST) ==================== -->
+      <section id="tab-transactions" class="tab-pane">
+        <div class="transactions-toolbar">
+          <div class="search-box">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="searchInput" placeholder="Tìm kiếm theo tên cửa hàng, ghi chú...">
+          </div>
+          <div class="toolbar-actions">
+            <select id="sortSelect" class="filter-select">
+              <option value="date-desc">Mới nhất trước</option>
+              <option value="date-asc">Cũ nhất trước</option>
+              <option value="amount-desc">Số tiền: Cao → Thấp</option>
+              <option value="amount-asc">Số tiền: Thấp → Cao</option>
+            </select>
+            <button id="exportCsvBtn" class="btn btn-secondary" title="Xuất dữ liệu ra file Excel CSV">
+              <i class="fa-solid fa-file-excel"></i> Xuất CSV
+            </button>
+            <button id="exportJsonBtn" class="btn btn-secondary" title="Sao lưu JSON">
+              <i class="fa-solid fa-download"></i> Sao lưu
+            </button>
+          </div>
+        </div>
+
+        <!-- Category Filter Chips -->
+        <div class="category-chips-scroll" id="categoryChips">
+          <button class="chip active" data-category="all">Tất cả</button>
+          <button class="chip" data-category="food"><i class="fa-solid fa-utensils"></i> Ăn uống</button>
+          <button class="chip" data-category="daily"><i class="fa-solid fa-bottle-droplet"></i> Chi tiêu h.ngày</button>
+          <button class="chip" data-category="clothes"><i class="fa-solid fa-shirt"></i> Quần áo</button>
+          <button class="chip" data-category="education"><i class="fa-solid fa-book-open"></i> Giáo dục</button>
+          <button class="chip" data-category="transport"><i class="fa-solid fa-train-subway"></i> Đi lại</button>
+          <button class="chip" data-category="utility"><i class="fa-solid fa-faucet-drip"></i> Điện / Nước</button>
+          <button class="chip" data-category="rent"><i class="fa-solid fa-house"></i> Tiền nhà</button>
+          <button class="chip" data-category="other"><i class="fa-solid fa-receipt"></i> Khác</button>
+        </div>
+
+        <div id="fullExpenseList" class="expense-list"></div>
+      </section>
+
+    </main>
+
+    <!-- ==================== MODALS ==================== -->
+
+    <!-- MODAL 1: SCAN OCR (CAMERA & BANK / INVOICE SAMPLES) -->
+    <div id="scanModal" class="modal">
+      <div class="modal-dialog scan-dialog">
+        <div class="modal-header">
+          <h2><i class="fa-solid fa-camera"></i> Quét Hóa Đơn & Chuyển Khoản Ngân Hàng (OCR)</h2>
+          <button class="close-btn" data-close="scanModal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="viewfinder-container">
+            <video id="webcamVideo" autoplay playsinline muted></video>
+            <div class="laser-scanner"></div>
+            <div class="corner-marker corner-tl"></div>
+            <div class="corner-marker corner-tr"></div>
+            <div class="corner-marker corner-bl"></div>
+            <div class="corner-marker corner-br"></div>
+            <div class="viewfinder-hint">Căn chỉnh hóa đơn hoặc màn hình chuyển khoản vào giữa khung quét</div>
+          </div>
+
+          <div class="sample-presets">
+            <div style="margin-bottom:10px;">
+              <span class="preset-label"><i class="fa-solid fa-building-columns"></i> Mẫu Chuyển khoản Ngân hàng & Ví điện tử:</span>
+              <div class="preset-buttons">
+                <button class="preset-btn" data-preset="vcb_rent">🏦 Vietcombank (Tiền nhà 2.500.000đ)</button>
+                <button class="preset-btn" data-preset="tcb_salary">🏦 Techcombank (Nhận lương +15.000.000đ)</button>
+                <button class="preset-btn" data-preset="mbbank_food">🏦 MB Bank (Ăn uống nhóm 250.000đ)</button>
+                <button class="preset-btn" data-preset="tpbank_edu">🏦 TPBank (Học phí 1.200.000đ)</button>
+                <button class="preset-btn" data-preset="momo_bill">📱 MoMo (Tiền điện EVN 450.000đ)</button>
+              </div>
+            </div>
+
+            <div>
+              <span class="preset-label"><i class="fa-solid fa-receipt"></i> Mẫu Hóa đơn bán lẻ & Dịch vụ:</span>
+              <div class="preset-buttons">
+                <button class="preset-btn" data-preset="winmart">🛒 Siêu thị WinMart (162.000đ)</button>
+                <button class="preset-btn" data-preset="highlands">☕ Highlands Coffee (153.000đ)</button>
+                <button class="preset-btn" data-preset="fahasa">📚 Nhà sách Fahasa (240.000đ)</button>
+                <button class="preset-btn" data-preset="grab">🛵 GrabBike (33.000đ)</button>
+                <button class="preset-btn" data-preset="cgv">🎬 Rạp phim CGV (130.000đ)</button>
+                <button class="preset-btn" data-preset="tgdd">💻 TGDĐ Chuột Logitech (350.000đ)</button>
+                <button class="preset-btn" data-preset="petrolimex">⛽ Petrolimex Đổ Xăng (90.000đ)</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="scan-controls" style="margin-top:14px;">
+            <label class="btn btn-secondary upload-label">
+              <i class="fa-solid fa-image"></i> Tải Ảnh Hóa Đơn / Biên Lai Lên
+              <input type="file" id="imageFileInput" accept="image/*" style="display:none;">
+            </label>
+            <button id="captureWebcamBtn" class="btn btn-primary btn-large">
+              <i class="fa-solid fa-camera-rotate"></i> Chụp Khung Hình
+            </button>
+          </div>
+
+          <div id="ocrLoading" class="ocr-loading hidden">
+            <div class="spinner"></div>
+            <p id="ocrLoadingText">Hệ thống OCR đang phân tích hóa đơn / giao dịch ngân hàng...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL 2: REVIEW & VERIFICATION (XÁC THỰC OCR VỚI RAW OCR INSPECTOR) -->
+    <div id="reviewModal" class="modal">
+      <div class="modal-dialog">
+        <div class="modal-header">
+          <h2><i class="fa-solid fa-clipboard-check"></i> Xác Thực Giao Dịch & Hóa Đơn</h2>
+          <button class="close-btn" data-close="reviewModal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="alert alert-info">
+            <i class="fa-solid fa-circle-info"></i>
+            <span>Hệ thống OCR đã tự động bóc tách thông tin từ giao dịch / hóa đơn. Bạn có thể kiểm tra trước khi lưu.</span>
+          </div>
+
+          <form id="reviewForm">
+            <div class="type-segmented-control compact" style="margin-bottom:14px;">
+              <button type="button" class="type-btn active" id="reviewTypeExpense">Tiền chi</button>
+              <button type="button" class="type-btn" id="reviewTypeIncome">Tiền thu</button>
+            </div>
+
+            <div class="form-group">
+              <label for="reviewMerchant">Cửa hàng / Người nhận / Người gửi *</label>
+              <div class="input-icon">
+                <i class="fa-solid fa-store"></i>
+                <input type="text" id="reviewMerchant" required placeholder="Ví dụ: Siêu thị WinMart hoặc NGUYEN VAN A">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="reviewAmount">Tổng số tiền (VNĐ) *</label>
+              <div class="input-icon">
+                <i class="fa-solid fa-money-bill-wave"></i>
+                <input type="number" id="reviewAmount" required placeholder="Ví dụ: 150000" min="1000" step="1000">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="reviewDate">Ngày giao dịch *</label>
+              <div class="input-icon">
+                <i class="fa-solid fa-calendar-days"></i>
+                <input type="date" id="reviewDate" required>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Phân loại danh mục</label>
+              <div class="category-radio-group" id="reviewCategoryGroup"></div>
+            </div>
+
+            <div class="form-group">
+              <label for="reviewNote">Nội dung chuyển khoản / Chi tiết món đồ</label>
+              <textarea id="reviewNote" rows="2" placeholder="Nội dung giao dịch hoặc chi tiết sản phẩm..."></textarea>
+            </div>
+
+            <!-- Raw OCR Accordion -->
+            <details class="ocr-raw-details">
+              <summary><i class="fa-solid fa-code"></i> Xem văn bản OCR thô (Raw OCR Inspector)</summary>
+              <pre id="reviewRawOcrText" class="raw-ocr-box"></pre>
+            </details>
+
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-close="reviewModal">Hủy</button>
+              <button type="submit" class="btn btn-primary">
+                <i class="fa-solid fa-floppy-disk"></i> Lưu Vào Sổ Chi Tiêu
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL 3: ADD / EDIT EXPENSE MANUAL (NHẬP TAY) -->
+    <div id="addEditModal" class="modal">
+      <div class="modal-dialog">
+        <div class="modal-header">
+          <h2 id="addEditTitle"><i class="fa-solid fa-pen-to-square"></i> Thêm Giao Dịch Mới</h2>
+          <button class="close-btn" data-close="addEditModal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <form id="addEditForm">
+            <input type="hidden" id="editExpenseId">
+            
+            <div class="type-segmented-control compact" style="margin-bottom:14px;">
+              <button type="button" class="type-btn active" id="modalTypeExpense">Tiền chi</button>
+              <button type="button" class="type-btn" id="modalTypeIncome">Tiền thu</button>
+            </div>
+
+            <div class="form-group">
+              <label for="manualMerchant">Tên cửa hàng / Mục thu chi *</label>
+              <div class="input-icon">
+                <i class="fa-solid fa-store"></i>
+                <input type="text" id="manualMerchant" required placeholder="Ví dụ: Highlands Coffee">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="manualAmount">Số tiền (VNĐ) *</label>
+              <div class="input-icon">
+                <i class="fa-solid fa-money-bill-wave"></i>
+                <input type="number" id="manualAmount" required placeholder="Ví dụ: 65000" min="1000" step="1000">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="manualDate">Ngày giao dịch *</label>
+              <div class="input-icon">
+                <i class="fa-solid fa-calendar-days"></i>
+                <input type="date" id="manualDate" required>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Danh mục</label>
+              <div class="category-radio-group" id="manualCategoryGroup"></div>
+            </div>
+
+            <div class="form-group">
+              <label for="manualNote">Ghi chú</label>
+              <textarea id="manualNote" rows="2" placeholder="Ghi chú chi tiết..."></textarea>
+            </div>
+
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-close="addEditModal">Hủy</button>
+              <button type="submit" class="btn btn-primary">
+                <i class="fa-solid fa-check"></i> Lưu Giao Dịch
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL 4: BUDGET SETTINGS (MASTER & CATEGORIES) -->
+    <div id="budgetModal" class="modal">
+      <div class="modal-dialog">
+        <div class="modal-header">
+          <h2><i class="fa-solid fa-bullseye"></i> Thiết Lập Ngân Sách</h2>
+          <button class="close-btn" data-close="budgetModal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <form id="budgetForm">
+            <div class="form-group">
+              <label for="monthlyBudgetInput">Tổng hạn mức ngân sách tháng (VNĐ) *</label>
+              <div class="input-icon">
+                <i class="fa-solid fa-wallet"></i>
+                <input type="number" id="monthlyBudgetInput" required min="100000" step="50000" placeholder="Ví dụ: 5000000">
+              </div>
+            </div>
+
+            <!-- Live Allocation Tracker Bar inside Modal -->
+            <div class="modal-allocation-tracker" id="modalAllocationTracker">
+              <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:700; margin-bottom:4px;">
+                <span>Tổng phân bổ các danh mục:</span>
+                <span id="modalAllocatedSumText">0 đ / 0 đ (0%)</span>
+              </div>
+              <div class="progress-track" style="height:6px; margin:0;">
+                <div class="progress-bar" id="modalAllocatedBar" style="width: 0%;"></div>
+              </div>
+              <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-muted); margin-top:4px;">
+                <span id="modalUnallocatedText">Khả dụng còn lại: 0 đ</span>
+                <span id="modalAllocationStatusBadge" style="font-weight:700;">Hợp lệ</span>
+              </div>
+            </div>
+
+            <!-- Validation Warning Box -->
+            <div id="modalAllocationWarningBox" class="alert alert-danger hidden" style="margin-top:10px;">
+              <i class="fa-solid fa-triangle-exclamation"></i>
+              <span id="modalAllocationWarningMsg">Tổng hạn mức các danh mục không được vượt quá Tổng ngân sách tháng!</span>
+            </div>
+
+            <div class="section-title-row" style="margin: 16px 0 8px;">
+              <h4 style="font-size:13px; font-weight:700;"><i class="fa-solid fa-sliders"></i> Phân bổ hạn mức chi tiết từng danh mục:</h4>
+            </div>
+            <div id="modalCategoryBudgetsList" class="modal-cat-budgets-grid">
+              <!-- Dynamically populated category budget inputs -->
+            </div>
+
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-close="budgetModal">Hủy</button>
+              <button type="submit" id="saveMasterBudgetBtn" class="btn btn-primary"><i class="fa-solid fa-check"></i> Lưu Toàn Bộ Ngân Sách</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL 4B: QUICK EDIT INDIVIDUAL CATEGORY BUDGET -->
+    <div id="categoryBudgetModal" class="modal">
+      <div class="modal-dialog">
+        <div class="modal-header">
+          <h2 id="catBudgetModalTitle"><i class="fa-solid fa-sliders"></i> Hạn Mức Danh Mục</h2>
+          <button class="close-btn" data-close="categoryBudgetModal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <form id="categoryBudgetForm">
+            <input type="hidden" id="catBudgetId">
+
+            <div class="form-group" id="catBudgetSelectGroup">
+              <label for="catBudgetSelect">Chọn danh mục chi tiêu</label>
+              <select id="catBudgetSelect" class="filter-select" style="width:100%; padding:10px 14px;">
+                <!-- Dynamically populated categories -->
+              </select>
+            </div>
+
+            <!-- Current Category Info Box -->
+            <div id="catBudgetInfoBox" class="cat-budget-info-box hidden">
+              <div class="category-icon-circle" id="catBudgetIconBox" style="width:40px; height:40px; font-size:18px;">
+                <i id="catBudgetIconEl" class="fa-solid fa-utensils"></i>
+              </div>
+              <div style="flex:1;">
+                <h4 id="catBudgetNameEl" style="font-size:15px; font-weight:800;">Ăn uống</h4>
+                <div style="display:flex; gap:12px; font-size:12px; color:var(--text-muted); margin-top:2px;">
+                  <span id="catBudgetSpentEl">Đã chi: 0 đ</span>
+                  <span id="catBudgetRemainingEl">Còn lại: 0 đ</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Allocation Limit Guidance Box -->
+            <div class="cat-budget-limit-guide" id="catBudgetLimitGuide" style="margin-top:12px;">
+              <div style="display:flex; justify-content:space-between; font-size:12px;">
+                <span>Tổng ngân sách tháng: <strong id="guideMonthlyBudget">5.000.000 đ</strong></span>
+                <span>Mục khác: <strong id="guideOtherBudgets">3.500.000 đ</strong></span>
+              </div>
+              <div style="font-size:12px; font-weight:800; color:var(--primary); margin-top:4px;">
+                <i class="fa-solid fa-circle-check"></i> Tối đa có thể đặt cho danh mục này: <span id="guideMaxAvailable">1.500.000 đ</span>
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-top:12px;">
+              <label for="catBudgetAmountInput">Hạn mức ngân sách (VNĐ) *</label>
+              <div class="input-icon">
+                <i class="fa-solid fa-money-bill-wave"></i>
+                <input type="number" id="catBudgetAmountInput" required min="50000" step="50000" placeholder="Ví dụ: 1500000">
+              </div>
+            </div>
+
+            <!-- Warning message when exceeded -->
+            <div id="catBudgetWarningBox" class="alert alert-danger hidden" style="margin-bottom:12px; font-size:12px;">
+              <i class="fa-solid fa-triangle-exclamation"></i>
+              <span id="catBudgetWarningMsg">Số tiền vượt quá hạn mức tối đa cho phép!</span>
+            </div>
+
+            <!-- Quick Preset Chips -->
+            <div class="preset-label"><i class="fa-solid fa-bolt"></i> Chọn nhanh số tiền:</div>
+            <div class="preset-buttons" style="margin-bottom:16px;">
+              <button type="button" class="preset-btn" data-cat-preset="300000">+300k</button>
+              <button type="button" class="preset-btn" data-cat-preset="500000">+500k</button>
+              <button type="button" class="preset-btn" data-cat-preset="1000000">+1.000k</button>
+              <button type="button" class="preset-btn" data-cat-preset="2000000">+2.000k</button>
+              <button type="button" class="preset-btn" id="presetSetMaxBtn">Đặt tối đa</button>
+            </div>
+
+            <div class="modal-footer" style="display:flex; justify-content:space-between; align-items:center;">
+              <button type="button" class="btn btn-secondary" id="removeCatBudgetBtn" style="color:var(--expense-red); border-color:rgba(220,38,38,0.3);">
+                <i class="fa-solid fa-trash-can"></i> Xóa Hạn Mức
+              </button>
+              <div style="display:flex; gap:8px;">
+                <button type="button" class="btn btn-secondary" data-close="categoryBudgetModal">Hủy</button>
+                <button type="submit" id="saveCatBudgetBtn" class="btn btn-primary">
+                  <i class="fa-solid fa-check"></i> Lưu Hạn Mức
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL 5: CATEGORY MANAGER MODAL -->
+    <div id="categoryManagerModal" class="modal">
+      <div class="modal-dialog cat-dialog">
+        <div class="modal-header">
+          <h2><i class="fa-solid fa-shapes"></i> Quản Lý Danh Mục Thu Chi</h2>
+          <button class="close-btn" data-close="categoryManagerModal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="cat-manager-topbar">
+            <div class="cat-filter-tabs">
+              <button class="cat-type-tab active" data-cat-filter="all">Tất cả</button>
+              <button class="cat-type-tab" data-cat-filter="expense">Chi tiêu</button>
+              <button class="cat-type-tab" data-cat-filter="income">Thu nhập</button>
+            </div>
+            <button id="addNewCategoryBtn" class="btn btn-primary">
+              <i class="fa-solid fa-plus"></i> Thêm Danh Mục
+            </button>
+          </div>
+          <div class="cat-manager-list" id="categoryManagerList">
+            <!-- Dynamically populated category list -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL 6: ADD / EDIT CATEGORY MODAL -->
+    <div id="addEditCategoryModal" class="modal">
+      <div class="modal-dialog">
+        <div class="modal-header">
+          <h2 id="addEditCategoryTitle"><i class="fa-solid fa-folder-plus"></i> Thêm Danh Mục Mới</h2>
+          <button class="close-btn" data-close="addEditCategoryModal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <form id="addEditCategoryForm">
+            <input type="hidden" id="editCategoryId">
+
+            <!-- Category Preview -->
+            <div class="cat-preview-box">
+              <span class="preview-label">Xem trước huy hiệu:</span>
+              <div id="categoryLivePreview" class="cat-live-preview">
+                <div class="cat-preview-icon" id="previewIconBox">
+                  <i id="previewIconEl" class="fa-solid fa-utensils"></i>
+                </div>
+                <span id="previewNameEl" class="preview-name">Tên danh mục</span>
+              </div>
+            </div>
+
+            <!-- Name Input -->
+            <div class="form-group">
+              <label for="categoryNameInput">Tên danh mục *</label>
+              <div class="input-icon">
+                <i class="fa-solid fa-tag"></i>
+                <input type="text" id="categoryNameInput" required placeholder="Ví dụ: Du lịch, Thú cưng, Cà phê...">
+              </div>
+            </div>
+
+            <!-- Type Choice -->
+            <div class="form-group">
+              <label>Loại danh mục</label>
+              <div class="type-segmented-control" style="margin-bottom:6px;">
+                <button type="button" class="type-btn active" id="catTypeExpense">Chi tiêu</button>
+                <button type="button" class="type-btn" id="catTypeIncome">Thu nhập</button>
+                <button type="button" class="type-btn" id="catTypeBoth">Cả hai</button>
+              </div>
+            </div>
+
+            <!-- Icon Picker -->
+            <div class="form-group">
+              <label><i class="fa-solid fa-icons"></i> Chọn biểu tượng (Icon)</label>
+              <div class="icon-picker-grid" id="iconPickerGrid">
+                <!-- Dynamically populated icon choices -->
+              </div>
+            </div>
+
+            <!-- Color Picker -->
+            <div class="form-group">
+              <label><i class="fa-solid fa-palette"></i> Chọn màu sắc</label>
+              <div class="color-picker-palette" id="colorPickerPalette">
+                <!-- Dynamically populated color swatches -->
+              </div>
+            </div>
+
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-close="addEditCategoryModal">Hủy</button>
+              <button type="submit" class="btn btn-primary">
+                <i class="fa-solid fa-check"></i> Lưu Danh Mục
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
