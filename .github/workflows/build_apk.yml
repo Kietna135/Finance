@@ -1,9 +1,14 @@
-name: Build Release APK
+name: Build Release APK & Create Release
 
 on:
   push:
     branches: [ main ]
+    tags:
+      - 'v*'
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -23,16 +28,8 @@ jobs:
       - name: Set up Flutter SDK
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.24.x'
           channel: 'stable'
           cache: true
-
-      - name: Check & create Android scaffolding if missing
-        run: |
-          if [ ! -d "android" ]; then
-            echo "Scaffolding android directory..."
-            flutter create . --platforms=android --org=com.example.finance
-          fi
 
       - name: Install dependencies
         run: flutter pub get
@@ -43,19 +40,31 @@ jobs:
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: app-release
+          name: Finance-App
           path: build/app/outputs/flutter-apk/app-release.apk
 
       - name: Create GitHub Release with APK
         uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
         with:
-          tag_name: v1.0.0-release
-          name: Finance Release v1.0.0 (APK)
+          tag_name: v2.0.0
+          name: "Finance App v2.0.0 - Giao Diện Sáng & Đầy Đủ Tính Năng (APK)"
           body: |
-            ## 🚀 Tải Xuống File Cài Đặt Android (Release APK)
-            - **Tên file**: `app-release.apk`
-            - **Tính năng**: Quản lý chi tiêu, AI OCR trích xuất hóa đơn, Biểu đồ Canvas, Quản lý danh mục & Ngân sách.
-          files: build/app/outputs/flutter-apk/app-release.apk
+            ## 💰 Finance App v2.0.0 (Bản Chính Thức)
+            
+            ### ✨ Các tính năng nổi bật:
+            - ☀️ **Giao diện Sáng (Light Theme)** hiện đại, sắc nét Material 3.
+            - 💳 **Quản lý Thu / Chi & Số Dư Khả Dụng** (Income, Expense & Balance).
+            - 🧾 **Trình Quét OCR Hóa Đơn Tự Động** & Xem lại ảnh hóa đơn gốc đính kèm.
+            - 📅 **Lịch Thu Chi Tương Tác** theo ngày trực quan.
+            - 🎯 **Quản Lý Hạn Mức Ngân Sách** & Cảnh báo thông minh khi vượt hạn mức.
+            - 📊 **Phân Tích Biểu Đồ Đa Chiều** (Biểu đồ tròn Donut & Biểu đồ cột xu hướng).
+            - 💾 **Sao Lưu & Xuất / Khôi Phục Dữ Liệu** (CSV Excel & JSON).
+            
+            ---
+            ### 📥 Tải xuống tệp cài đặt:
+            Tải file **`Finance-App.apk`** bên dưới và cài đặt trên điện thoại Android của bạn.
+          files: |
+            build/app/outputs/flutter-apk/app-release.apk
+            Finance-App.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
